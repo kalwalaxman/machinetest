@@ -1,0 +1,35 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: mongodump
+spec:
+  schedule: '@daily'
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+          - name: mongodump
+            persistentVolumeClaim:
+              claimName: mongodump
+          restartPolicy: Never
+          containers:
+            - name: mongodb
+              image: mongo
+              command : ["/bin/sh", "-c"]
+              args: ["mongodump --uri -u $(MONGO_INITDB_ROOT_USERNAME) -p $(MONGO_INITDB_ROOT_PASSWORD) --authenticationDatabase $(MONGODB_DB) -o /usr/share/mongodump/$(date +\"%d%m%H\")"]
+              env:
+              - name: MONGO_INITDB_ROOT_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: mongo-secret
+                    key: MONGO_INITDB_ROOT_PASSWORD
+              - name:  MONGO_INITDB_ROOT_USERNAME 
+                valueFrom:
+                  secretKeyRef:
+                    name: mango-secret
+                    key: MONGO_INITDB_ROOT_USERNAME
+              volumeMounts:
+              - mountPath: "/usr/share/mongodump/"
+                name: mongodump
+
